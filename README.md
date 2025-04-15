@@ -1,2 +1,4 @@
 # PPlot
- Processing plotter
+Processing plotter
+
+![image](/plot.png)
