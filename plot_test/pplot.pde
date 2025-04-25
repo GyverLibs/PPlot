@@ -30,7 +30,17 @@ class LBUF {
 };
 
 class PPlot {
+  // парсить данные:
+  // - числа, разделённые ';' или ',' - значения осей
+  // - текст, разделённый ';' или ',' - подписи осей
+  // - текст, начинающийся с '#' - заголовок графика
   public void parse(String str) {
+    if (str.startsWith("#")) {
+      _title = str.substring(1);
+      _upd = true;
+      return;
+    }
+
     String[] s = str.split(";|,");
     if (s.length == 0) return;
 
@@ -47,6 +57,7 @@ class PPlot {
     _upd = true;
   }
 
+  // добавить данные напрямую
   public void add(float[] data) {
     if (buf == null || buf.length != data.length) {
       buf = new LBUF[data.length];
@@ -66,6 +77,7 @@ class PPlot {
     _upd = true;
   }
 
+  // сдвинуть график на 1 единицу
   public void move() {
     if (buf == null) return;
     float[] arr = new float[buf.length];
@@ -75,13 +87,16 @@ class PPlot {
     add(arr);
   }
 
+  // обновить график
   public void redraw(int x, int y, int w, int h, float scale) {
     redraw(x, y, w, h, scale, true);
   }
   public void redraw(int x, int y, int w, int h, float scale, boolean show) {
     if (buf == null || buf.length == 0 || buf[0].length == 0) return;
 
-    if (_x != x || _y != y || _w != w || _h != h || _s != scale || _upd) {
+    boolean resize = _x != x || _y != y || _w != w || _h != h;
+    if (resize) p = createGraphics(w, h);
+    if (resize || _s != scale || _upd) {
       _x = x;
       _y = y;
       _w = w;
@@ -98,7 +113,7 @@ class PPlot {
       int tgap = 10;
       int huestep = 151;
 
-      p = createGraphics(w, h);
+      //p = createGraphics(w, h);
       p.beginDraw();
 
       // window
@@ -141,6 +156,13 @@ class PPlot {
         }
       }
 
+      // title
+      if (_title.length() > 0) {
+        p.fill(0);
+        p.textAlign(CENTER, BASELINE);
+        p.text(_title, x + w / 2, y - 5);
+      }
+
       // grid
       int am = round(h / 80);
       float dif = max - min;
@@ -150,7 +172,7 @@ class PPlot {
       p.fill(0);
       for (int i = 0; i < am + 1; i++) {
         float v = max - step * i;
-        float yy = map(max - step * i, min, max, y + h, y);
+        float yy = (min == max) ? (y + h) / 2 : map(max - step * i, min, max, y + h, y);
         p.strokeWeight(0.3);
         p.stroke(100);
         p.line(x, yy, x + w, yy);
@@ -168,7 +190,7 @@ class PPlot {
         float px = 0, py = 0;
         for (int i = 0; i < buf[b].length; i++) {
           float xx = x + w - i * scale;
-          float yy = map(buf[b].get(i), min, max, y + h, y);
+          float yy = (min == max) ? (y + h) / 2 : map(buf[b].get(i), min, max, y + h, y);
           if (xx < x) {
             p.line(px, py, x, yy);
             break;
@@ -187,6 +209,7 @@ class PPlot {
   PGraphics p;
   LBUF[] buf = null;
   String[] lbls = null;
+  String _title = "";
   int _x = 0, _y = 0, _w = 0, _h = 0;
   float _s = 0;
   boolean _upd = false;
